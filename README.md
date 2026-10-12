@@ -13,7 +13,7 @@ Rendering uses a vendored, [Mantine](https://mantine.dev)-backed reimplementatio
 
 ## Requirements
 
-- Node.js ≥ 20 and `pnpm` (`corepack enable` gives you pnpm).
+- Node.js 22 (the runtime itself runs on 20, but pnpm 11 needs 22 unless installed as a standalone binary) and `pnpm` (`corepack enable` gives you pnpm).
 - `jq`, `curl`, `bash`.
 - A browser. Headless PNG/PDF export additionally needs a Chromium (Playwright's cache or a system install is found automatically).
 - For sharing only: a Cloudflare account.

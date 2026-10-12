@@ -17,7 +17,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # pnpm 11 requires Node >= 22.13 when run through Node.
+          node-version: 22
           cache: pnpm
           cache-dependency-path: runtime/pnpm-lock.yaml
 
