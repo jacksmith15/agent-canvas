@@ -1,0 +1,17 @@
+{
+  "name": "agent-canvas",
+  "owner": {
+    "name": "Jack Smith",
+    "email": "jack.je.smith@gmail.com"
+  },
+  "metadata": {
+    "description": "Cursor-style canvases for terminal agents."
+  },
+  "plugins": [
+    {
+      "name": "agent-canvas",
+      "source": "./",
+      "description": "Durable, interactive canvases (.canvas.tsx) rendered in the browser from Claude Code, with type-check feedback, auto-open, single-file export and sharing."
+    }
+  ]
+}

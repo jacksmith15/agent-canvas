@@ -1,0 +1,18 @@
+{
+  "name": "agent-canvas",
+  "displayName": "Agent Canvas",
+  "version": "0.1.0",
+  "description": "Cursor-style canvases for terminal agents. The agent writes a .canvas.tsx against the cursor/canvas API; a local runtime type-checks it, renders it in the browser with live reload, and can export or share it as a single HTML file.",
+  "author": {
+    "name": "Jack Smith",
+    "email": "jack.je.smith@gmail.com"
+  },
+  "homepage": "https://github.com/jacksmith15/agent-canvas",
+  "repository": "https://github.com/jacksmith15/agent-canvas",
+  "license": "MIT",
+  "keywords": ["canvas", "visualization", "dashboard", "report", "cursor-canvas", "cli"],
+  "category": "developer-tools",
+  "tags": ["agents", "visualization", "reports"],
+  "skills": "./skills/",
+  "hooks": "./hooks/cursor-hooks.json"
+}

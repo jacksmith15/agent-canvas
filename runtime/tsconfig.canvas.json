@@ -1,0 +1,31 @@
+{
+  // Base config for type-checking a single `.canvas.tsx` file. The check
+  // script generates a throwaway tsconfig that `extends` this one and sets
+  // `files` to the canvas being checked. `paths` resolve relative to this
+  // file, so `cursor/canvas` always lands on the runtime's shim module.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "cursor/canvas": ["./src/cursor-canvas.ts"],
+      // The canvas lives outside this directory, so bare specifiers would be
+      // resolved from its location (where there is no node_modules). Pin the
+      // JSX runtime types to this runtime's copy of @types/react.
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime.d.ts"]
+    },
+    "types": []
+  },
+  "files": []
+}

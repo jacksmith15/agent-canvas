@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: runtime/pnpm-lock.yaml
+
+      - name: Install runtime
+        run: pnpm install --frozen-lockfile
+        working-directory: runtime
+
+      - name: Type-check runtime
+        run: ./node_modules/.bin/tsc --noEmit -p tsconfig.json
+        working-directory: runtime
+
+      - name: Shell syntax and shellcheck
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q shellcheck jq
+          for f in scripts/canvas scripts/*.sh hooks/*.sh; do bash -n "$f"; done
+          shellcheck -x -P SCRIPTDIR --severity=warning scripts/canvas scripts/*.sh hooks/*.sh
+
+      - name: Validate manifests
+        run: |
+          for f in .cursor-plugin/*.json .claude-plugin/*.json hooks/*.json; do jq -e . "$f" >/dev/null; done
+
+      - name: Canvas check on the example
+        run: scripts/canvas check examples/demo.canvas.tsx
+
+      - name: Single-file export of the example
+        run: |
+          scripts/canvas export examples/demo.canvas.tsx --out /tmp/demo.html
+          test -s /tmp/demo.html
+          # Nothing external may be referenced from the export.
+          ! grep -qE '(src|href)="https?://' /tmp/demo.html
+
+      - name: Hook adapters respond correctly
+        run: |
+          printf '{"tool_name":"Read","tool_input":{"path":"x.canvas.tsx"}}' | bash hooks/cursor.sh | grep -qx '{}'
+          out=$(printf '{"tool_name":"Read","tool_input":{"file_path":"x.canvas.tsx"}}' | bash hooks/claude.sh); test -z "$out"

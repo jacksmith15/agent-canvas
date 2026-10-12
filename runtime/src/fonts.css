@@ -1,0 +1,62 @@
+/*
+ * Self-hosted fonts (latin subsets, woff2). Served from runtime/public/fonts/
+ * by the dev server; nothing is fetched from the network at runtime. All three
+ * are SIL Open Font Licence; each directory carries its OFL.txt.
+ */
+
+@font-face {
+  font-family: 'Merriweather';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('./fonts/merriweather/Merriweather-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Raleway';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/raleway/Raleway-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Raleway';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/raleway/Raleway-Italic-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Fira Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/fira-mono/FiraMono-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Fira Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/fira-mono/FiraMono-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Fira Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/fira-mono/FiraMono-Bold.woff2') format('woff2');
+}
+
+/*
+ * Raleway's default figures are old-style (3, 4, 5, 7, 9 descend), which is
+ * wrong for the numbers that dominate a canvas. Request lining figures
+ * everywhere; tables additionally get tabular spacing via the Mantine theme.
+ */
+body {
+  font-variant-numeric: lining-nums;
+}

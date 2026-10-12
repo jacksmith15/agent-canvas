@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Canvas</title>
+    <style>
+      html, body { margin: 0; }
+      body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      /* A browser tab is the equivalent of the IDE's full-screen/shared canvas
+         view, not its side panel, so give layouts the width they were designed
+         for. 1280px lets multi-column grids and paired charts breathe while
+         keeping a full-width line of body text readable; the side padding
+         grows with the window so the content never sits hard against an edge. */
+      #root { padding: 20px clamp(24px, 4vw, 64px) 40px; max-width: 1280px; margin: 0 auto; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

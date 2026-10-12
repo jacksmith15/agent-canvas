@@ -1,0 +1,9 @@
+packages:
+  - .
+
+# esbuild's postinstall fetches its platform binary. wrangler's optional native
+# deps are not needed for `pages deploy`, so their build scripts are declined.
+allowBuilds:
+  esbuild: true
+  sharp: false
+  workerd: false

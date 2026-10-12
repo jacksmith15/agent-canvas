@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# agent-canvas command-line entry point. Every operation the skill, the hooks
+# and the README refer to goes through here, so nothing depends on where the
+# plugin is installed.
+#
+# Usage: canvas <command> [arguments]
+#
+#   root                      Print the canvas root directory
+#   path <name> [workspace]   Print the canvas file path for a workspace (default: cwd)
+#   check <file>              Type-check and lint a .canvas.tsx
+#   open <file>               Open a canvas in the browser (starts the server if needed)
+#   server start|stop|status  Manage the local canvas server
+#   export <file> [options]   Single-file HTML export (+ --png / --pdf)
+#   share <file> [options]    Export and publish to Cloudflare Pages
+#   publish <file.html>       Publish an HTML file to Cloudflare Pages
+#   unpublish <alias|url>     Replace a shared canvas with a tombstone
+#   list                      List shared canvases
+#   config                    Show the effective configuration
+#   setup                     Install runtime dependencies (and the SDK declarations)
+#   install cursor|claude     Register the skill and hook with a harness
+set -uo pipefail
+
+# This file is usually reached through a symlink (~/.local/bin/canvas), so
+# resolve it to its real location before looking for siblings.
+self="${BASH_SOURCE[0]}"
+while [ -L "$self" ]; do
+  link_dir="$(cd "$(dirname "$self")" && pwd)"
+  self="$(readlink "$self")"
+  case "$self" in /*) ;; *) self="$link_dir/$self" ;; esac
+done
+script_dir="$(cd "$(dirname "$self")" && pwd)"
+
+# shellcheck source=lib.sh
+. "$script_dir/lib.sh"
+
+usage() {
+  sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+cmd="${1:-}"
+[ $# -gt 0 ] && shift
+
+case "$cmd" in
+  root) printf '%s\n' "$CANVAS_ROOT" ;;
+  path)
+    [ -z "${1:-}" ] && { echo "usage: canvas path <name> [workspace-dir]" >&2; exit 64; }
+    canvas_path_for "$1" "${2:-$PWD}"
+    ;;
+  check) exec "$CANVAS_HOME/scripts/canvas-check.sh" "$@" ;;
+  open) exec "$CANVAS_HOME/scripts/open-canvas.sh" "$@" ;;
+  server) exec "$CANVAS_HOME/scripts/canvas-server.sh" "$@" ;;
+  export) exec "$CANVAS_HOME/scripts/export-canvas.sh" "$@" ;;
+  share) exec "$CANVAS_HOME/scripts/share-canvas.sh" "$@" ;;
+  publish) exec "$CANVAS_HOME/scripts/publish-html.sh" "$@" ;;
+  unpublish) exec "$CANVAS_HOME/scripts/publish-html.sh" --unpublish "$@" ;;
+  list) exec "$CANVAS_HOME/scripts/publish-html.sh" --list ;;
+  config)
+    printf 'home:           %s\n' "$CANVAS_HOME"
+    printf 'config file:    %s%s\n' "$CANVAS_CONFIG_FILE" "$([ -f "$CANVAS_CONFIG_FILE" ] || echo ' (absent)')"
+    printf 'root:           %s\n' "$CANVAS_ROOT"
+    printf 'theme:          %s\n' "$CANVAS_THEME"
+    printf 'port:           %s\n' "$CANVAS_PORT"
+    printf 'pages project:  %s\n' "$CANVAS_PAGES_PROJECT"
+    printf 'workspace slug: %s\n' "$(workspace_slug "$PWD")"
+    ;;
+  setup) exec "$CANVAS_HOME/scripts/setup.sh" "$@" ;;
+  install) exec "$CANVAS_HOME/scripts/install.sh" "$@" ;;
+  -h | --help | help | '') usage; [ -n "$cmd" ] && exit 0 || exit 64 ;;
+  *)
+    echo "canvas: unknown command '$cmd'" >&2
+    usage >&2
+    exit 64
+    ;;
+esac

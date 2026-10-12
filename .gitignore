@@ -1,0 +1,17 @@
+# Runtime dependencies and build output
+runtime/node_modules/
+runtime/.export-dist/
+runtime/.wrangler/
+
+# Local state written by the scripts and hooks
+runtime/.server.pid
+runtime/.server.log
+runtime/.canvas-errors.log
+runtime/.opened-canvases
+runtime/.published.jsonl
+
+# Cursor's SDK declarations are fetched by `canvas setup`, not redistributed
+sdk/*.d.ts
+
+# Editors / OS
+.DS_Store

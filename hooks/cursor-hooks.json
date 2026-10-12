@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "command": "bash \"${CURSOR_PLUGIN_ROOT}/hooks/cursor.sh\"",
+        "timeout": 120
+      }
+    ]
+  }
+}

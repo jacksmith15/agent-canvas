@@ -1,0 +1,28 @@
+{
+  "name": "canvas-cli-runtime",
+  "private": true,
+  "type": "module",
+  "description": "Browser host for Cursor .canvas.tsx files, for use with the Cursor CLI.",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@mantine/charts": "^7.17.0",
+    "@mantine/core": "^7.17.0",
+    "@mantine/hooks": "^7.17.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vite-plugin-singlefile": "^2.3.3",
+    "wrangler": "^3.114.17"
+  }
+}
