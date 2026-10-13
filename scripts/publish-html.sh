@@ -3,7 +3,11 @@
 # URL. One Pages project holds every shared canvas; each canvas is deployed to
 # its own branch so it gets a stable, readable alias:
 #
-#   https://<name>.<project>.pages.dev
+#   https://<name>.<project-host>        e.g. https://report.canvases-jane.pages.dev
+#
+# The project host is assigned by Cloudflare and is read back from wrangler on
+# every deploy rather than composed: when <project>.pages.dev is already taken
+# by another account, Cloudflare issues a suffixed host (canvases-jane-17n…).
 #
 # Usage:
 #   publish-html.sh <file.html> [--name <alias>]
@@ -81,12 +85,16 @@ alias_for() {
 }
 
 alias_from() {
-  # Accept an alias, or a URL of the form https://<alias>.<project>.pages.dev[/...]
+  # Accept an alias, or any https://<alias>.<project-host>.pages.dev[/...] URL.
+  # The project host is whatever Cloudflare assigned (it may carry a suffix),
+  # so take the first label of the hostname rather than stripping a guess.
   local s="$1"
   s="${s#https://}"
   s="${s#http://}"
   s="${s%%/*}"
-  s="${s%.$PROJECT.pages.dev}"
+  case "$s" in
+    *.pages.dev) s="${s%%.*}" ;;
+  esac
   alias_for "$s"
 }
 
@@ -94,7 +102,15 @@ record() {
   printf '%s\n' "$1" >>"$CANVAS_PUBLISHED_LOG"
 }
 
-# Deploy a directory to a branch; prints the deployment's unique URL.
+# Deploy a directory to a branch. Prints two lines: the deployment's unique
+# URL, then the branch alias URL as wrangler reported it (empty if it did not).
+#
+# Cloudflare assigns the project's hostname: normally <project>.pages.dev, but
+# with a suffix (e.g. <project>-17n.pages.dev) when that subdomain is taken by
+# any other account. Never compose the hostname; read it from wrangler.
+DEPLOYMENT_URL=""
+ALIAS_URL=""
+PROJECT_HOST=""
 deploy_dir() {
   local dir="$1" branch="$2" message="$3" out
   if ! out="$(wrangler pages deploy "$dir" --project-name "$PROJECT" --branch "$branch" --commit-dirty=true --commit-message "$message" 2>&1)"; then
@@ -102,7 +118,19 @@ deploy_dir() {
     printf '%s\n' "$out" | grep -v '^\s*$' | tail -n 12 >&2
     exit 1
   fi
-  printf '%s\n' "$out" | grep -oE 'https://[a-z0-9-]+\.[a-z0-9-]+\.pages\.dev' | head -n1
+  DEPLOYMENT_URL="$(printf '%s\n' "$out" | grep -oE 'Take a peek over at https://[a-z0-9.-]+\.pages\.dev' | grep -oE 'https://.*' | head -n1)"
+  ALIAS_URL="$(printf '%s\n' "$out" | grep -oE 'Deployment alias URL: https://[a-z0-9.-]+\.pages\.dev' | grep -oE 'https://.*' | head -n1)"
+  [ -z "$DEPLOYMENT_URL" ] && DEPLOYMENT_URL="$(printf '%s\n' "$out" | grep -oE 'https://[a-z0-9.-]+\.pages\.dev' | head -n1)"
+  # Project host = deployment hostname minus its leading <hash> label.
+  local host="${DEPLOYMENT_URL#https://}"
+  PROJECT_HOST="${host#*.}"
+  if [ -z "$PROJECT_HOST" ] || [ "$PROJECT_HOST" = "$host" ]; then
+    echo "publish-html: could not determine the project hostname from wrangler's output:" >&2
+    printf '%s\n' "$out" | grep -v '^\s*$' | tail -n 8 >&2
+    exit 1
+  fi
+  # Prefer the alias wrangler printed; otherwise compose it on the real host.
+  [ -z "$ALIAS_URL" ] && ALIAS_URL="https://$branch.$PROJECT_HOST"
 }
 
 do_list() {
@@ -140,10 +168,10 @@ do_unpublish() {
 </head><body><p>This canvas has been unpublished.</p></body></html>
 EOF
   printf 'X-Robots-Tag: noindex\n' >"$tmp/_headers"
-  deploy_dir "$tmp" "$alias" "unpublish $alias" >/dev/null
-  record "$(jq -cn --arg ts "$(date -u +%FT%TZ)" --arg alias "$alias" '{event: "unpublish", ts: $ts, alias: $alias}')"
-  echo "Unpublished: https://$alias.$PROJECT.pages.dev now shows a tombstone page."
-  echo "Note: Cloudflare keeps earlier deployments reachable at their own <hash>.$PROJECT.pages.dev URLs; those were never shared by this tool, and can be deleted in the Pages dashboard."
+  deploy_dir "$tmp" "$alias" "unpublish $alias"
+  record "$(jq -cn --arg ts "$(date -u +%FT%TZ)" --arg alias "$alias" --arg url "$ALIAS_URL" '{event: "unpublish", ts: $ts, alias: $alias, url: $url}')"
+  echo "Unpublished: $ALIAS_URL now shows a tombstone page."
+  echo "Note: Cloudflare keeps earlier deployments reachable at their own <hash>.$PROJECT_HOST URLs; those were never shared by this tool, and can be deleted in the Pages dashboard."
 }
 
 do_publish() {
@@ -179,14 +207,13 @@ do_publish() {
   cp "$file" "$tmp/index.html"
   printf 'X-Robots-Tag: noindex\n' >"$tmp/_headers"
 
-  local deployment_url url
-  deployment_url="$(deploy_dir "$tmp" "$alias" "publish $name")"
-  url="https://$alias.$PROJECT.pages.dev"
+  deploy_dir "$tmp" "$alias" "publish $name"
+  local url="$ALIAS_URL" deployment_url="$DEPLOYMENT_URL"
 
   record "$(jq -cn \
     --arg ts "$(date -u +%FT%TZ)" --arg file "$file" --arg name "$name" --arg alias "$alias" \
-    --arg url "$url" --arg dep "$deployment_url" --arg project "$PROJECT" \
-    '{event: "publish", ts: $ts, file: $file, name: $name, alias: $alias, url: $url, deployment_url: $dep, project: $project}')"
+    --arg url "$url" --arg dep "$deployment_url" --arg project "$PROJECT" --arg host "$PROJECT_HOST" \
+    '{event: "publish", ts: $ts, file: $file, name: $name, alias: $alias, url: $url, deployment_url: $dep, project: $project, project_host: $host}')"
 
   echo "Published: $url"
   [ -n "$deployment_url" ] && echo "This version (immutable): $deployment_url"

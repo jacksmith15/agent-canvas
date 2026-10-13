@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Sharing reports the concrete URL. Cloudflare assigns a suffixed project host (e.g. `canvases-jane-17n.pages.dev`) when `<project>.pages.dev` is already taken by another account; the published and unpublished URLs are now read from wrangler's deploy output instead of being composed from the project name, and `canvas unpublish` accepts any `*.pages.dev` URL.
+
 ## 0.2.0
 
 - Self-installing plugin. A session-start hook (`hooks/ensure-installed.sh`) installs the runtime into `~/.local/share/agent-canvas/tool` on first use and re-syncs it when the plugin version changes, so `claude plugin install` / `agent plugin marketplace add` is the whole install; no clone needed. The post-write hook bootstraps too, in case a first canvas lands before session start finishes. A developer checkout set up with `scripts/canvas setup` is left alone and takes precedence.

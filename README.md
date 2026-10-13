@@ -79,7 +79,7 @@ Optional, at `~/.config/agent-canvas/config.json`. Environment variables of the 
 
 ## Sharing
 
-`canvas share <file>` exports the canvas and deploys it to Cloudflare Pages, one branch alias per canvas: `https://<name>.<project>.pages.dev`. Re-sharing updates the link; `canvas unpublish <name>` replaces it with a tombstone immediately. Links are `noindex` but **not access-controlled** — anyone who has one can open it, and the data is in the page source. The skill tells the agent to share only when asked and to raise the question of sensitive data first.
+`canvas share <file>` exports the canvas and deploys it to Cloudflare Pages, one branch alias per canvas: `https://<name>.<project host>`, where the host is the one Cloudflare assigned the project (normally `<project>.pages.dev`; suffixed, e.g. `<project>-17n.pages.dev`, when that subdomain was already taken by another account). The URL is read back from the deploy, never composed. Re-sharing updates the link; `canvas unpublish <name>` replaces it with a tombstone immediately. Links are `noindex` but **not access-controlled** — anyone who has one can open it, and the data is in the page source. The skill tells the agent to share only when asked and to raise the question of sensitive data first.
 
 One-time setup: `(cd runtime && ./node_modules/.bin/wrangler login)`, or export `CLOUDFLARE_API_TOKEN` (Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`. The runtime pins `wrangler@3` so Node 20 works; bump to 4 once you are on Node 22.
 
