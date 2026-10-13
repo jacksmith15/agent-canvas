@@ -21,7 +21,9 @@
 set -uo pipefail
 
 # This file is usually reached through a symlink (~/.local/bin/canvas), so
-# resolve it to its real location before looking for siblings.
+# resolve it to its real location before looking for siblings. lib.sh then
+# resolves CANVAS_HOME (the installed tool), which may differ from this copy
+# when `canvas` is invoked from a plugin cache.
 self="${BASH_SOURCE[0]}"
 while [ -L "$self" ]; do
   link_dir="$(cd "$(dirname "$self")" && pwd)"
@@ -55,7 +57,7 @@ case "$cmd" in
   unpublish) exec "$CANVAS_HOME/scripts/publish-html.sh" --unpublish "$@" ;;
   list) exec "$CANVAS_HOME/scripts/publish-html.sh" --list ;;
   config)
-    printf 'home:           %s\n' "$CANVAS_HOME"
+    printf 'home:           %s   (installed tool: runtime/, scripts/, sdk/)\n' "$CANVAS_HOME"
     printf 'config file:    %s%s\n' "$CANVAS_CONFIG_FILE" "$([ -f "$CANVAS_CONFIG_FILE" ] || echo ' (absent)')"
     printf 'root:           %s\n' "$CANVAS_ROOT"
     printf 'theme:          %s\n' "$CANVAS_THEME"

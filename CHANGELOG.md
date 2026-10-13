@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Fix plugin-manager installs. Plugin managers copy the repository into a cache without installing the runtime, so hooks running from that copy failed with "runtime dependencies are missing". Scripts and hooks now resolve the installed tool (`CANVAS_HOME`) via the environment, the `home` key `canvas setup` records in `~/.config/agent-canvas/config.json`, or the `canvas` command on `PATH`, instead of assuming it is beside them.
+- Skill no longer describes the tool as living "two levels above `SKILL.md`"; it points at `canvas config`'s `home`.
+- `canvas config` labels `home` as the installed tool directory.
+
 ## 0.1.0
 
 Initial release.

@@ -11,6 +11,12 @@ ensure_node || {
   exit 1
 }
 
+# Setup installs *this* checkout as the tool, whatever lib.sh resolved to, and
+# records it so hooks running from a plugin cache can find it.
+CANVAS_HOME="$(cd "$(dirname "$(real_path "${BASH_SOURCE[0]}")")/.." && pwd)"
+CANVAS_RUNTIME_DIR="$CANVAS_HOME/runtime"
+config_set home "$CANVAS_HOME" && echo "recorded home=$CANVAS_HOME in $CANVAS_CONFIG_FILE"
+
 cd "$CANVAS_RUNTIME_DIR"
 if command -v pnpm >/dev/null 2>&1; then
   pnpm install --frozen-lockfile

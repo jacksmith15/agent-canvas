@@ -20,10 +20,12 @@ Rendering uses a vendored, [Mantine](https://mantine.dev)-backed reimplementatio
 
 ## Install
 
+Two parts: the **tool** (runtime, scripts, SDK declarations) is installed once from a clone; the **plugin** (skill and hooks) is registered with each harness and finds the tool through `~/.config/agent-canvas/config.json`, which setup writes. Plugin managers copy the repository into their own cache, so the clone is required even when you install the plugin from a marketplace.
+
 ```bash
 git clone https://github.com/jacksmith15/agent-canvas
 cd agent-canvas
-scripts/canvas setup          # installs the runtime, fetches SDK declarations, links ~/.local/bin/canvas
+scripts/canvas setup          # installs the runtime, fetches SDK declarations, links ~/.local/bin/canvas, records this location
 ```
 
 Then register with your harness. Either as a plugin:

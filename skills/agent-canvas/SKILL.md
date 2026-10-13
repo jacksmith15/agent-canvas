@@ -17,7 +17,7 @@ description: >-
 ---
 A canvas is a single `.canvas.tsx` file written against the `cursor/canvas` API. In the Cursor IDE, Cursor compiles and displays it in a side panel; here, the runtime bundled with this plugin serves it to the browser with live reload. The file format is identical, so canvases written here also open in a current Cursor IDE. Follow the workflow below in order.
 
-**The `canvas` command.** Every operation below goes through one command, `canvas`. It is normally on `PATH` (installed by `canvas setup`); if not, it is `scripts/canvas` under the plugin root, which is the directory two levels above this `SKILL.md`. `canvas --help` lists the subcommands.
+**The `canvas` command.** Every operation below goes through one command, `canvas`, which `canvas setup` puts on `PATH`. If it is not found, read `home` from `~/.config/agent-canvas/config.json` and run `<home>/scripts/canvas`. `canvas config` prints `home` — the directory where the tool is installed (`runtime/`, `scripts/`, `sdk/`) — which is not necessarily where this `SKILL.md` was loaded from; plugin managers copy the skill elsewhere. `canvas --help` lists the subcommands.
 
 ## Workflow
 
@@ -61,7 +61,7 @@ The trigger is **user intent**, not response shape. Ask: would the user benefit 
 - A **legend** when more than one series is shown, with the exact series names from the source data.
 - The **source and time range** in a small caption (e.g. "Source: Datadog · last 7 days"). If a value is a transformation (mean, p95, normalized, smoothed), say so in the label.
 
-**Component discovery:** prefer built-in `cursor/canvas` components over hand-rolled markup. The public surface (components, hooks, prop types, tokens) is declared in `sdk/index.d.ts` and its sibling `.d.ts` files under the plugin root — read them when you need exact exports, prop shapes, or hook signatures rather than guessing. If `sdk/` holds only a README, the declarations were not fetched; `canvas setup` populates it, and until then `runtime/src/shim/cursor-canvas.tsx` lists every export. Referencing an export that does not exist is the most common error. The type check in step 3 is the final authority: it runs against the renderer actually used here, so if it rejects an export, that export is not available regardless of what the declarations say.
+**Component discovery:** prefer built-in `cursor/canvas` components over hand-rolled markup. The public surface (components, hooks, prop types, tokens) is declared in `<home>/sdk/index.d.ts` and its sibling `.d.ts` files, where `<home>` is the installed tool directory from `canvas config` — read them when you need exact exports, prop shapes, or hook signatures rather than guessing. If `sdk/` holds only a README, the declarations were not fetched; `canvas setup` populates it, and until then `<home>/runtime/src/shim/cursor-canvas.tsx` lists every export. Referencing an export that does not exist is the most common error. The type check in step 3 is the final authority: it runs against the renderer actually used here, so if it rejects an export, that export is not available regardless of what the declarations say.
 
 **Host-specific behaviour** (same API, different host):
 - Colours come from the host's configured theme preset, which the user may have changed; `useHostTheme()` tokens, `tone` props and the category `Color` names all resolve to it, which is one more reason never to hardcode colours. `?theme=light|dark` on the canvas URL overrides the scheme.
@@ -148,12 +148,12 @@ Both can apply at once; one or two sentences total is enough. Skip the intro for
 
 ## Troubleshooting
 
-Paths below are relative to the plugin root (two levels above this `SKILL.md`); `canvas config` prints it as `home`.
+Paths below are relative to the installed tool directory, printed by `canvas config` as `home`.
 
 - **Canvas page is blank or shows an error panel.** The browser reports runtime errors to `runtime/.canvas-errors.log`; read its tail. The error panel on the page shows the same stack trace.
 - **Type check reports an export that the official declarations list.** The renderer is a reimplementation of the SDK (vendored in `runtime/src/shim/`) and may lag it. Use an alternative component; the check output is correct for this host.
 - **`canvas open` fails to start the server.** Read `runtime/.server.log`. Check `canvas server status`; `canvas server stop` then `start` recovers from a stale process. The port is `4817` unless configured.
-- **"runtime dependencies are missing".** Run `canvas setup` once (needs Node and pnpm).
+- **"runtime is not installed at …".** The tool has not been set up on this machine, or the hook could not find it. The runtime lives in the git checkout where `scripts/canvas setup` was run (never in a plugin cache); setup records that location in the config file. Ask the user to clone the repository and run setup if they have not.
 - **Sharing fails with "not logged in to Cloudflare".** Sharing needs a one-time `wrangler login` (the command prints the exact invocation) or `CLOUDFLARE_API_TOKEN` in the environment, plus `jq`. The Pages project (`canvases-<user>` by default) is created automatically on first use; if that name is taken, set `pagesProject` in the config file or `CANVAS_PAGES_PROJECT` in the environment.
 - **Shared link gives a TLS error or shows stale content.** Right after the project is first created, Cloudflare takes a few minutes to issue the `*.<project>.pages.dev` certificate; links fail to connect until then. After any publish or unpublish the alias can take up to a minute to switch. Both resolve on their own; tell the user to retry shortly rather than re-running.
 - **No `Canvas TypeScript check` line after edits.** The post-tool hook is not loaded: the plugin was installed mid-session (hooks load at session start), or it was never registered (`canvas install cursor` / `canvas install claude` registers it without the plugin system). Run `canvas check` and `canvas open` manually in the meantime.

@@ -12,9 +12,16 @@
 #   CANVAS_THEME          "cursor" (default) or "oxide".
 #   CANVAS_PORT           Local server port. Default 4817.
 #   CANVAS_PAGES_PROJECT  Cloudflare Pages project for sharing. Default canvases-<user>.
+#   CANVAS_HOME           Where the tool is installed (runtime/, scripts/, sdk/). See below.
+#
+# Plugin vs tool. Plugin managers (claude plugin install, agent plugin ...) copy
+# this repository into a cache to get the skill and hooks, but never install the
+# runtime there. The runtime lives in exactly one place: the checkout where
+# `canvas setup` was run. Scripts and hooks therefore resolve CANVAS_HOME rather
+# than assuming it is beside them: CANVAS_HOME env, then `home` in the config
+# file (written by setup), then the directory the `canvas` command on PATH points
+# into, and only then this file's own checkout.
 
-CANVAS_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CANVAS_RUNTIME_DIR="$CANVAS_HOME/runtime"
 CANVAS_CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/agent-canvas/config.json"
 
 # Read one key from the config file; empty when absent or unreadable.
@@ -23,6 +30,47 @@ config_get() {
   command -v jq >/dev/null 2>&1 || return 0
   jq -r --arg k "$1" '.[$k] // empty' "$CANVAS_CONFIG_FILE" 2>/dev/null
 }
+
+# Follow symlinks to a file's real path (portable; no readlink -f).
+real_path() {
+  local target="$1" dir
+  while [ -L "$target" ]; do
+    dir="$(cd "$(dirname "$target")" && pwd)"
+    target="$(readlink "$target")"
+    case "$target" in /*) ;; *) target="$dir/$target" ;; esac
+  done
+  printf '%s\n' "$(cd "$(dirname "$target")" && pwd)/$(basename "$target")"
+}
+
+is_tool_home() {
+  [ -f "$1/scripts/lib.sh" ] && [ -d "$1/runtime" ]
+}
+
+resolve_canvas_home() {
+  local candidate
+  candidate="${CANVAS_HOME:-}"
+  if [ -n "$candidate" ] && is_tool_home "${candidate/#\~/$HOME}"; then
+    printf '%s\n' "${candidate/#\~/$HOME}"
+    return 0
+  fi
+  candidate="$(config_get home)"
+  candidate="${candidate/#\~/$HOME}"
+  if [ -n "$candidate" ] && is_tool_home "$candidate"; then
+    printf '%s\n' "$candidate"
+    return 0
+  fi
+  if command -v canvas >/dev/null 2>&1; then
+    candidate="$(dirname "$(dirname "$(real_path "$(command -v canvas)")")")"
+    if is_tool_home "$candidate"; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  fi
+  printf '%s\n' "$(cd "$(dirname "$(real_path "${BASH_SOURCE[0]}")")/.." && pwd)"
+}
+
+CANVAS_HOME="$(resolve_canvas_home)"
+CANVAS_RUNTIME_DIR="$CANVAS_HOME/runtime"
 
 default_root() {
   if [ -d "$HOME/.cursor/projects" ]; then
@@ -41,7 +89,7 @@ CANVAS_PORT="${CANVAS_PORT:-$(config_get port)}"
 [ -z "$CANVAS_PORT" ] && CANVAS_PORT=4817
 CANVAS_PAGES_PROJECT="${CANVAS_PAGES_PROJECT:-$(config_get pagesProject)}"
 [ -z "$CANVAS_PAGES_PROJECT" ] && CANVAS_PAGES_PROJECT="canvases-${USER:-$(id -un)}"
-export CANVAS_ROOT CANVAS_THEME CANVAS_PORT CANVAS_PAGES_PROJECT
+export CANVAS_HOME CANVAS_ROOT CANVAS_THEME CANVAS_PORT CANVAS_PAGES_PROJECT
 
 CANVAS_URL="http://127.0.0.1:$CANVAS_PORT"
 CANVAS_PIDFILE="$CANVAS_RUNTIME_DIR/.server.pid"
@@ -82,9 +130,19 @@ ensure_node() {
 
 ensure_runtime_installed() {
   if [ ! -x "$CANVAS_RUNTIME_DIR/node_modules/.bin/vite" ] || [ ! -x "$CANVAS_RUNTIME_DIR/node_modules/.bin/tsc" ]; then
-    echo "agent-canvas: runtime dependencies are missing. Run: $CANVAS_HOME/scripts/canvas setup" >&2
+    echo "agent-canvas: runtime is not installed at $CANVAS_HOME. Clone the repository and run scripts/canvas setup there (plugin caches are not install locations)." >&2
     return 1
   fi
+}
+
+# Record a key in the config file, creating it if needed and keeping other keys.
+config_set() {
+  command -v jq >/dev/null 2>&1 || return 1
+  mkdir -p "$(dirname "$CANVAS_CONFIG_FILE")"
+  [ -s "$CANVAS_CONFIG_FILE" ] || echo '{}' >"$CANVAS_CONFIG_FILE"
+  local tmp
+  tmp="$(mktemp)"
+  jq --arg k "$1" --arg v "$2" '.[$k] = $v' "$CANVAS_CONFIG_FILE" >"$tmp" && mv "$tmp" "$CANVAS_CONFIG_FILE"
 }
 
 # Resolve to an absolute path and validate the canvas file-name contract.
