@@ -2,6 +2,13 @@
 
 Cursor-style canvases for terminal agents.
 
+| Cursor Theme (default) | Oxide Theme |
+| --- | --- |
+| <img width="1635" height="1626" alt="Screenshot from 2026-10-13 12-32-42" src="https://github.com/user-attachments/assets/ac908219-69a1-4eb3-b5f1-0e6951e168bc" /> | <img width="1635" height="1626" alt="Screenshot from 2026-10-13 12-32-46" src="https://github.com/user-attachments/assets/e394bc08-1f9d-47b1-9037-10f872b3c373" /> |
+| [Live](https://hairy-ball-theorem.canvases-jack-17n.pages.dev) | [Live](https://hairy-ball-theorem-oxide.canvases-jack-17n.pages.dev) |
+
+
+
 Cursor's IDE can answer with a **canvas** — a small React app rendered beside the chat — when a result deserves a durable, interactive artifact rather than a wall of markdown. This plugin brings the same thing to agents that live in a terminal, currently the **Cursor CLI** and **Claude Code**:
 
 - The agent writes a `.canvas.tsx` against the `cursor/canvas` API, exactly as it would for the IDE. Files are interchangeable with the IDE's.
