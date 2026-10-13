@@ -13,38 +13,35 @@ Rendering uses a vendored, [Mantine](https://mantine.dev)-backed reimplementatio
 
 ## Requirements
 
-- Node.js 22 (the runtime itself runs on 20, but pnpm 11 needs 22 unless installed as a standalone binary) and `pnpm` (`corepack enable` gives you pnpm).
+- Node.js 22 (the runtime itself runs on 20, but pnpm 11 needs 22 unless installed as a standalone binary). `pnpm` if you have it; otherwise setup uses `corepack` or `npx pnpm`.
 - `jq`, `curl`, `bash`.
 - A browser. Headless PNG/PDF export additionally needs a Chromium (Playwright's cache or a system install is found automatically).
 - For sharing only: a Cloudflare account.
 
 ## Install
 
-Two parts: the **tool** (runtime, scripts, SDK declarations) is installed once from a clone; the **plugin** (skill and hooks) is registered with each harness and finds the tool through `~/.config/agent-canvas/config.json`, which setup writes. Plugin managers copy the repository into their own cache, so the clone is required even when you install the plugin from a marketplace.
+As a plugin:
 
 ```bash
-git clone https://github.com/jacksmith15/agent-canvas
-cd agent-canvas
-scripts/canvas setup          # installs the runtime, fetches SDK declarations, links ~/.local/bin/canvas, records this location
-```
-
-Then register with your harness. Either as a plugin:
-
-```bash
+# Claude Code
+claude plugin marketplace add jacksmith15/agent-canvas
+claude plugin install agent-canvas@agent-canvas
 # Cursor CLI
 agent plugin marketplace add https://github.com/jacksmith15/agent-canvas
-# Claude Code
-claude plugin marketplace add jacksmith15/agent-canvas && claude plugin install agent-canvas@agent-canvas
 ```
 
-or, if you would rather not use the plugin system (or your harness version predates it):
+That is the whole install. On the first session the plugin's session-start hook installs the runtime into `~/.local/share/agent-canvas/tool` (Node and network needed; 20–90 s), links `~/.local/bin/canvas`, and records the location in `~/.config/agent-canvas/config.json`. Plugin updates re-sync it automatically. Plugin managers keep only the skill and hooks in their cache; the runtime never lives there.
+
+Without the plugin system (or to develop the tool itself), clone and install in place, then register the skill and hook by hand:
 
 ```bash
+git clone https://github.com/jacksmith15/agent-canvas && cd agent-canvas
+scripts/canvas setup          # installs the runtime here and makes this checkout the tool home
 canvas install cursor         # symlinks the skill into ~/.cursor/skills and adds the hook to ~/.cursor/hooks.json
 canvas install claude         # symlinks the skill into ~/.claude/skills and adds the hook to ~/.claude/settings.json
 ```
 
-Start a new session afterwards; hooks load at session start. `canvas install <harness> --uninstall` reverses it.
+A checkout set up this way takes precedence over the managed install and is never overwritten by plugin updates. Start a new session after installing either way; hooks load at session start. `canvas install <harness> --uninstall` reverses the manual registration.
 
 ## Use
 
@@ -88,9 +85,14 @@ One-time setup: `(cd runtime && ./node_modules/.bin/wrangler login)`, or export 
 
 For a file rather than a link, `canvas export <file>` writes `<canvases dir>/exports/<name>.html` (roughly 1 MB with fonts, 0.8 MB without), plus `--png` / `--pdf`.
 
-## How the hook works
+## How the hooks work
 
-Both harnesses run `hooks/after-write.sh` through a thin adapter (`hooks/cursor.sh`, `hooks/claude.sh`) after every tool call. The adapter exits immediately unless the tool wrote a file ending in `.canvas.tsx`, so the cost on ordinary tool calls is one `jq` invocation. For a canvas it runs the type check and, on the first clean result, `canvas open`. Nothing is uploaded or sent anywhere by the hook.
+Two hooks per harness, each a thin adapter over a shared script:
+
+- **Session start** → `hooks/ensure-installed.sh`. Exits in milliseconds when the tool is installed and current; otherwise syncs the plugin checkout into `~/.local/share/agent-canvas/tool` and runs `pnpm install` there. Cursor's version also exports `CANVAS_HOME` for later hooks.
+- **After a tool call** → `hooks/after-write.sh`. Exits immediately unless the tool wrote a file ending in `.canvas.tsx`, so the cost on ordinary tool calls is one `jq` invocation. For a canvas it runs the type check and, on the first clean result, `canvas open`. It also calls `ensure-installed` first, so a first canvas works even if the session-start hook had not finished.
+
+Nothing is uploaded or sent anywhere by the hooks.
 
 ## Fidelity
 
@@ -110,7 +112,7 @@ The official SDK declarations are not redistributed here; `canvas setup` copies 
 
 ```text
 skills/agent-canvas/SKILL.md   the skill (Agent Skills format; shared by both harnesses)
-hooks/                         after-write.sh core + cursor.sh / claude.sh adapters + per-harness hook configs
+hooks/                         ensure-installed.sh + after-write.sh cores, per-harness adapters and hook configs
 scripts/                       canvas entry point and the scripts behind each subcommand
 runtime/                       Vite host: vendored shim, theme presets, export build
 sdk/                           cursor/canvas .d.ts (fetched, gitignored)

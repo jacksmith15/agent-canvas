@@ -1,6 +1,6 @@
 {
   "name": "agent-canvas",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Cursor-style canvases for terminal agents. The agent writes a .canvas.tsx against the cursor/canvas API; a local runtime type-checks it, renders it in the browser with live reload, and can export or share it as a single HTML file.",
   "author": {
     "name": "Jack Smith",

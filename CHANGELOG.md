@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- Self-installing plugin. A session-start hook (`hooks/ensure-installed.sh`) installs the runtime into `~/.local/share/agent-canvas/tool` on first use and re-syncs it when the plugin version changes, so `claude plugin install` / `agent plugin marketplace add` is the whole install; no clone needed. The post-write hook bootstraps too, in case a first canvas lands before session start finishes. A developer checkout set up with `scripts/canvas setup` is left alone and takes precedence.
+- `setup.sh --into <dir>` syncs a checkout into a target before installing there; falls back through `pnpm`, `corepack pnpm`, `npx pnpm`, `npm`.
+- Tool-home resolution prefers candidates whose runtime is actually installed, so a bare plugin cache is never mistaken for the tool.
+
 ## 0.1.1
 
 - Fix plugin-manager installs. Plugin managers copy the repository into a cache without installing the runtime, so hooks running from that copy failed with "runtime dependencies are missing". Scripts and hooks now resolve the installed tool (`CANVAS_HOME`) via the environment, the `home` key `canvas setup` records in `~/.config/agent-canvas/config.json`, or the `canvas` command on `PATH`, instead of assuming it is beside them.

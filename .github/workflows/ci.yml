@@ -54,3 +54,49 @@ jobs:
         run: |
           printf '{"tool_name":"Read","tool_input":{"path":"x.canvas.tsx"}}' | bash hooks/cursor.sh | grep -qx '{}'
           out=$(printf '{"tool_name":"Read","tool_input":{"file_path":"x.canvas.tsx"}}' | bash hooks/claude.sh); test -z "$out"
+
+  plugin-bootstrap:
+    # The marketplace path: a plugin manager copies the repo (no node_modules)
+    # into a cache and runs the session-start hook. The hook must install the
+    # runtime into the data dir and the post-write hook must then work.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Simulate a plugin cache and a fresh home
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q jq
+          mkdir -p /tmp/sim/cache /tmp/sim/home
+          git archive HEAD | tar -x -C /tmp/sim/cache
+      - name: Session-start hook installs the runtime
+        env:
+          HOME: /tmp/sim/home
+          CLAUDE_PLUGIN_ROOT: /tmp/sim/cache
+        run: |
+          out=$(bash /tmp/sim/cache/hooks/claude-session-start.sh </dev/null)
+          echo "$out"
+          echo "$out" | jq -e '.hookSpecificOutput.additionalContext | test("runtime installed")' >/dev/null
+          test -x /tmp/sim/home/.local/share/agent-canvas/tool/runtime/node_modules/.bin/vite
+          jq -e '.managed == "true"' /tmp/sim/home/.config/agent-canvas/config.json >/dev/null
+      - name: Second start is a silent no-op
+        env:
+          HOME: /tmp/sim/home
+          CLAUDE_PLUGIN_ROOT: /tmp/sim/cache
+        run: |
+          out=$(bash /tmp/sim/cache/hooks/claude-session-start.sh </dev/null); test -z "$out"
+      - name: Post-write hook from the cache resolves the managed runtime
+        env:
+          HOME: /tmp/sim/home
+          CANVAS_ROOT: /tmp/sim/root
+        run: |
+          mkdir -p /tmp/sim/root/ws/canvases
+          cp examples/demo.canvas.tsx /tmp/sim/root/ws/canvases/demo.canvas.tsx
+          out=$(printf '{"tool_name":"Write","tool_input":{"file_path":"/tmp/sim/root/ws/canvases/demo.canvas.tsx"}}' | bash /tmp/sim/cache/hooks/claude.sh)
+          echo "$out"
+          echo "$out" | jq -e '.hookSpecificOutput.additionalContext | test("no errors")' >/dev/null
+          bash /tmp/sim/home/.local/share/agent-canvas/tool/scripts/canvas server stop || true

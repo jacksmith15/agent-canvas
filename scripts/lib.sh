@@ -16,13 +16,18 @@
 #
 # Plugin vs tool. Plugin managers (claude plugin install, agent plugin ...) copy
 # this repository into a cache to get the skill and hooks, but never install the
-# runtime there. The runtime lives in exactly one place: the checkout where
-# `canvas setup` was run. Scripts and hooks therefore resolve CANVAS_HOME rather
-# than assuming it is beside them: CANVAS_HOME env, then `home` in the config
-# file (written by setup), then the directory the `canvas` command on PATH points
-# into, and only then this file's own checkout.
+# runtime there, and the cache is replaced on every update. The runtime
+# therefore lives in exactly one stable place, the "tool home":
+#   - managed: ${XDG_DATA_HOME:-~/.local/share}/agent-canvas/tool, installed and
+#     kept in step with the plugin version by hooks/ensure-installed.sh;
+#   - or a developer's checkout where `scripts/canvas setup` was run in place.
+# Scripts and hooks resolve CANVAS_HOME rather than assuming it is beside them:
+# CANVAS_HOME env, then `home` in the config file (written by setup), then the
+# directory the `canvas` command on PATH points into, then this file's checkout.
 
 CANVAS_CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/agent-canvas/config.json"
+CANVAS_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/agent-canvas"
+CANVAS_MANAGED_HOME="$CANVAS_DATA_DIR/tool"
 
 # Read one key from the config file; empty when absent or unreadable.
 config_get() {
@@ -46,27 +51,40 @@ is_tool_home() {
   [ -f "$1/scripts/lib.sh" ] && [ -d "$1/runtime" ]
 }
 
+runtime_installed_at() {
+  [ -x "$1/runtime/node_modules/.bin/vite" ] && [ -x "$1/runtime/node_modules/.bin/tsc" ]
+}
+
+# Plugin version declared by a checkout (empty if unreadable).
+plugin_version_of() {
+  command -v jq >/dev/null 2>&1 || return 0
+  jq -r '.version // empty' "$1/.cursor-plugin/plugin.json" 2>/dev/null
+}
+
+# Candidates in precedence order; the first with an installed runtime wins. A
+# plugin cache looks like a tool home structurally but has no node_modules, so
+# "installed" is the test that matters. With nothing installed anywhere, fall
+# back to the first structurally valid candidate so error messages make sense.
 resolve_canvas_home() {
-  local candidate
-  candidate="${CANVAS_HOME:-}"
-  if [ -n "$candidate" ] && is_tool_home "${candidate/#\~/$HOME}"; then
-    printf '%s\n' "${candidate/#\~/$HOME}"
-    return 0
-  fi
+  local candidates=() candidate first_valid=""
+  [ -n "${CANVAS_HOME:-}" ] && candidates+=("${CANVAS_HOME/#\~/$HOME}")
   candidate="$(config_get home)"
-  candidate="${candidate/#\~/$HOME}"
-  if [ -n "$candidate" ] && is_tool_home "$candidate"; then
-    printf '%s\n' "$candidate"
-    return 0
-  fi
+  [ -n "$candidate" ] && candidates+=("${candidate/#\~/$HOME}")
   if command -v canvas >/dev/null 2>&1; then
-    candidate="$(dirname "$(dirname "$(real_path "$(command -v canvas)")")")"
-    if is_tool_home "$candidate"; then
+    candidates+=("$(dirname "$(dirname "$(real_path "$(command -v canvas)")")")")
+  fi
+  candidates+=("$CANVAS_MANAGED_HOME")
+  candidates+=("$(cd "$(dirname "$(real_path "${BASH_SOURCE[0]}")")/.." && pwd)")
+
+  for candidate in "${candidates[@]}"; do
+    is_tool_home "$candidate" || continue
+    [ -z "$first_valid" ] && first_valid="$candidate"
+    if runtime_installed_at "$candidate"; then
       printf '%s\n' "$candidate"
       return 0
     fi
-  fi
-  printf '%s\n' "$(cd "$(dirname "$(real_path "${BASH_SOURCE[0]}")")/.." && pwd)"
+  done
+  printf '%s\n' "${first_valid:-${candidates[${#candidates[@]}-1]}}"
 }
 
 CANVAS_HOME="$(resolve_canvas_home)"

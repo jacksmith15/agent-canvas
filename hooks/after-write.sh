@@ -22,8 +22,19 @@ case "$path" in
 esac
 [ -f "$path" ] || exit 0
 
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# First canvas on a machine where the session-start hook did not run (or has
+# not finished): install the tool now, then re-resolve where it lives.
+install_note="$("$here/ensure-installed.sh" "$(dirname "$here")" 2>&1)" || true
+if [ -n "$install_note" ]; then
+  unset CANVAS_HOME
+  # shellcheck source=../scripts/lib.sh
+  . "$here/../scripts/lib.sh"
+fi
+
 check_status=0
 context="$("$CANVAS_HOME/scripts/canvas-check.sh" "$path" 2>&1)" || check_status=$?
+[ -n "$install_note" ] && context="$install_note"$'\n'"$context"
 
 if [ "$check_status" -eq 0 ]; then
   if canvas_was_opened "$path"; then

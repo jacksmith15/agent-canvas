@@ -1,10 +1,16 @@
 {
   "version": 1,
   "hooks": {
+    "sessionStart": [
+      {
+        "command": "bash \"${CURSOR_PLUGIN_ROOT}/hooks/cursor-session-start.sh\"",
+        "timeout": 300
+      }
+    ],
     "postToolUse": [
       {
         "command": "bash \"${CURSOR_PLUGIN_ROOT}/hooks/cursor.sh\"",
-        "timeout": 120
+        "timeout": 300
       }
     ]
   }
