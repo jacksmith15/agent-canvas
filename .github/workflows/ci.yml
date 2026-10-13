@@ -76,6 +76,8 @@ jobs:
       - name: Session-start hook installs the runtime
         env:
           HOME: /tmp/sim/home
+          XDG_CONFIG_HOME: /tmp/sim/home/.config
+          XDG_DATA_HOME: /tmp/sim/home/.local/share
           CLAUDE_PLUGIN_ROOT: /tmp/sim/cache
         run: |
           out=$(bash /tmp/sim/cache/hooks/claude-session-start.sh </dev/null)
@@ -86,12 +88,16 @@ jobs:
       - name: Second start is a silent no-op
         env:
           HOME: /tmp/sim/home
+          XDG_CONFIG_HOME: /tmp/sim/home/.config
+          XDG_DATA_HOME: /tmp/sim/home/.local/share
           CLAUDE_PLUGIN_ROOT: /tmp/sim/cache
         run: |
           out=$(bash /tmp/sim/cache/hooks/claude-session-start.sh </dev/null); test -z "$out"
       - name: Post-write hook from the cache resolves the managed runtime
         env:
           HOME: /tmp/sim/home
+          XDG_CONFIG_HOME: /tmp/sim/home/.config
+          XDG_DATA_HOME: /tmp/sim/home/.local/share
           CANVAS_ROOT: /tmp/sim/root
         run: |
           mkdir -p /tmp/sim/root/ws/canvases
