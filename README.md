@@ -9,7 +9,7 @@ Cursor-style canvases for terminal agents.
 
 
 
-Cursor's IDE can answer with a **canvas** — a small React app rendered beside the chat — when a result deserves a durable, interactive artifact rather than a wall of markdown. This plugin brings the same thing to agents that live in a terminal, currently the **Cursor CLI** and **Claude Code**:
+Cursor's IDE can answer with a [**canvas**](https://cursor.com/docs/agent/tools/canvas) — a small React app rendered beside the chat — when a result deserves a durable, interactive artifact rather than a wall of markdown. This plugin brings the same thing to agents that live in a terminal, currently the **Cursor CLI** and **Claude Code**:
 
 - The agent writes a `.canvas.tsx` against the `cursor/canvas` API, exactly as it would for the IDE. Files are interchangeable with the IDE's.
 - A post-tool hook type-checks every write and feeds a `Canvas TypeScript check` line back to the agent, so it fixes its own mistakes.
